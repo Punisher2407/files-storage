@@ -1,0 +1,94 @@
+﻿using System.Collections.Generic;
+using System.IO;
+
+namespace FilesStorage
+{
+    public static class FileProcessing
+    {
+        private const string Root = @"C:\file_storage";
+        public enum PutCodes
+        {
+            SourceFileDoesntExist = 0,
+            DestDirectoryDoesntExist = 1,
+            WrongFileName = 2,
+            DoneCopy = 3
+        }
+
+        public static List<string> ProcessDirectory(string directory) // For GET - List of directories and files
+        {
+            List<string> result = new List<string>();
+
+            string[] directoryEntities = Directory.GetDirectories(directory);
+            foreach(string directoryName in directoryEntities)
+            {
+                result.Add($"Directory: {new DirectoryInfo(directoryName).Name}");
+            }
+
+            string[] fileEntries = Directory.GetFiles(directory);
+            foreach (string fileName in fileEntries)
+            {
+                result.Add($"File: {Path.GetFileName(fileName)}");
+            }
+
+            return result;
+        }
+        
+        public static string GetFullPath(string userPath)
+        {
+            if (userPath == null)
+            {
+                return Root;
+            }
+            else
+            {
+                return Path.Combine(Root, userPath);
+            }
+        }
+
+        // Form header
+        public static Dictionary<string, string> FileHeader(string filePath) 
+        {
+            Dictionary<string, string> header = new Dictionary<string, string>();
+            FileInfo fileInfo = new FileInfo(filePath);
+
+            header.Add("Name", fileInfo.Name);
+            header.Add("Size", fileInfo.Length.ToString());
+            header.Add("Extension", fileInfo.Extension);
+            header.Add("Creation_time", fileInfo.CreationTime.ToString());
+            header.Add("Last_write_time", fileInfo.LastWriteTime.ToString());
+            header.Add("Last_access_time", fileInfo.LastAccessTime.ToString());
+
+            return header;
+        }
+
+        public static PutCodes CopyFile(string srcPath, string destPath)
+        {
+            srcPath = Path.Combine(Root, srcPath);
+
+            if (!File.Exists(srcPath))
+            {
+                return PutCodes.SourceFileDoesntExist;
+            }
+
+            if (!Path.GetFileName(destPath).Contains(".")) // "File" without extension - directory
+            {
+                return PutCodes.WrongFileName;
+            }
+
+            if (!Directory.Exists(Path.GetDirectoryName(destPath)))
+            {
+                return PutCodes.DestDirectoryDoesntExist;
+            }
+
+            if (srcPath != destPath)
+            {
+                using FileStream sourceFile = new FileStream(srcPath, FileMode.Open);
+                using FileStream destFile = new FileStream(destPath, FileMode.OpenOrCreate);
+                sourceFile.CopyTo(destFile);
+            }
+            
+            return PutCodes.DoneCopy;
+        }
+
+    }
+}
